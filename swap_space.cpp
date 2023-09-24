@@ -102,8 +102,6 @@ void swap_space::write_back(swap_space::object *obj)
 
   if (obj->target_is_dirty) {
     std::string buffer = sstream.str();
-
-
     //modification - ss now controls BSID - split into unique id and version.
     //version increments linearly based uniquely on this version counter.
 
@@ -147,3 +145,25 @@ void swap_space::maybe_evict_something(void)
   }
 }
 
+void swap_space::flushAllModifiedPagesIntoDisk(void) {
+  auto s = lru_pqueue.size();
+  debug(std::cout << "lru_pqueue.size():" << s << std::endl);
+  debug(std::cout << "current_in_memory_objects:" << current_in_memory_objects << std::endl);
+  while (current_in_memory_objects > max_in_memory_objects) {
+    object *objToDel = NULL;
+    for (auto it = lru_pqueue.begin(); it != lru_pqueue.end(); it++) {
+      if ((*it)->pincount != 0) {
+        debug(std::cout << "There is object need to be unpinned, pincount:" << (*it)->pincount
+	                    << "id:" << (*it)->id << std::endl);
+      } else {
+        debug(std::cout << "pincount:" << (*it)->pincount	<< "id:" << (*it)->id << std::endl);
+        objToDel = *it;
+        break;
+      }
+    }
+    lru_pqueue.erase(objToDel);
+    write_back(objToDel);
+    delete objToDel->target;
+    current_in_memory_objects--;
+  }
+}

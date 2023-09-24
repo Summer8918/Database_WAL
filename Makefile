@@ -23,5 +23,11 @@ swap_space.o: swap_space.cpp swap_space.hpp backing_store.hpp
 
 backing_store.o: backing_store.hpp backing_store.cpp
 
+LogRecord.o: LogRecord.hpp
+
+LogManager.o: LogManager.hpp
+
+checkpoint.o: checkpoint.hpp
+
 clean:
 	$(RM) *.o test test_logging_restore generate

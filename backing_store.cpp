@@ -1,4 +1,5 @@
 #include "backing_store.hpp"
+#include "debug.hpp"
 #include <iostream>
 #include <ext/stdio_filebuf.h>
 #include <unistd.h>
@@ -18,6 +19,7 @@ void one_file_per_object_backing_store::allocate(uint64_t obj_id, uint64_t versi
   //uint64_t id = nextid++;
   std::string filename = get_filename(obj_id, version);
   std::fstream dummy(filename, std::fstream::out);
+  debug(std::cout << "filename:" << filename << std::endl);
   dummy.flush();
   assert(dummy.good());
   //return id;
@@ -61,4 +63,79 @@ std::string one_file_per_object_backing_store::get_filename(uint64_t obj_id, uin
 
   return root + "/" + std::to_string(obj_id) + "_" + std::to_string(version);
 
+}
+
+LogFileBackingStore::LogFileBackingStore(std::string logFile)
+{
+    logFile_ = logFile;
+    std::fstream dummy(logFile_, std::fstream::out);
+    dummy.flush();
+    assert(dummy.good());
+}
+
+void LogFileBackingStore::appendData(const char* data, int len) {
+  std::ofstream file(logFile_, std::ios::app | std::ios::binary);
+  assert(file.is_open());
+  file.write(data, len);
+  // flush file to disk
+  file.flush();
+}
+
+std::ifstream*  LogFileBackingStore::get(int &len) {
+    std::ifstream* filePtr = new std::ifstream(logFile_, std::ios::binary);
+    assert(filePtr->is_open()); 
+
+    // Determine the file size
+    filePtr->seekg(0, std::ios::end);
+    std::streampos fileSize = filePtr->tellg();
+    len = (int)fileSize;
+    filePtr->seekg(0, std::ios::beg);
+    return filePtr;
+}
+
+void LogFileBackingStore::put(const char* data, int len) {
+    std::string oldLogFile = "log.old";
+    assert(std::rename(logFile_.c_str(), oldLogFile.c_str()) == 0); 
+    std::ofstream file(logFile_, std::ofstream::out);
+    assert(file.is_open());
+    file.write(data, len);
+    file.close();
+    // flush file to disk
+    file.flush();
+    // delete old log file
+    std::remove(oldLogFile.c_str());
+}
+
+// Truncate Log File from the offset begining with len  
+void LogFileBackingStore::truncateLogFile(int len) {
+    // Open the file in binary mode for both reading and writing
+    std::fstream file(logFile_, std::ios::in | std::ios::out | std::ios::binary);
+    assert(file.is_open());
+    // Determine the file size
+    file.seekg(0, std::ios::end);
+    std::streampos fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // Seek to the desired position (offset) in the file
+    file.seekg(len, std::ios::beg);
+
+    assert((int)fileSize - len >= 0);
+    int newFileLen = (int)fileSize - len;
+    // Read data from len to the end of the file
+    char buffer[newFileLen];
+    char ch;
+    int i = 0;
+    while (file.get(ch)) {
+        buffer[i] = ch;
+        i++;
+    }
+    file.close();
+    std::fstream nFile(logFile_, std::ios::in | std::ios::out | std::ios::trunc);
+    // Write the data back to the beginning of the file
+    for (int j = 0; j < newFileLen; j++) {
+        nFile.put(buffer[j]);
+    }
+    // Close the file
+    nFile.close();
+    nFile.flush();
 }

@@ -55,6 +55,7 @@
 #include <cassert>
 #include "swap_space.hpp"
 #include "backing_store.hpp"
+#include "LogManager.hpp"
 
 ////////////////// Upserts
 
@@ -279,46 +280,48 @@ private:
     void apply(const MessageKey<Key> &mkey, const Message<Value> &elt,
 	       Value &default_value) {
       switch (elt.opcode) {
-      case INSERT:
-	elements.erase(elements.lower_bound(mkey.range_start()),
-		       elements.upper_bound(mkey.range_end()));
-	elements[mkey] = elt;
-	break;
+        case INSERT:
+	        elements.erase(elements.lower_bound(mkey.range_start()),
+		          elements.upper_bound(mkey.range_end()));
+	        elements[mkey] = elt;
+	        break;
 
-      case DELETE:
-	elements.erase(elements.lower_bound(mkey.range_start()),
-		       elements.upper_bound(mkey.range_end()));
-	if (!is_leaf())
-	  elements[mkey] = elt;
-	break;
+        case DELETE:
+	        elements.erase(elements.lower_bound(mkey.range_start()),
+		          elements.upper_bound(mkey.range_end()));
+	        if (!is_leaf()) {
+	          elements[mkey] = elt;
+          }
+	        break;
 
-      case UPDATE:
-	{
-	  auto iter = elements.upper_bound(mkey.range_end());
-	  if (iter != elements.begin())
-	    iter--;
-	  if (iter == elements.end() || iter->first.key != mkey.key)
-	    if (is_leaf()) {
-	      Value dummy = default_value;
-	      apply(mkey, Message<Value>(INSERT, dummy + elt.val),
-		    default_value);
-	    } else {
-	      elements[mkey] = elt;
-	    }
-	  else {
-	    assert(iter != elements.end() && iter->first.key == mkey.key);
-	    if (iter->second.opcode == INSERT) {
-	      apply(mkey, Message<Value>(INSERT, iter->second.val + elt.val),
-		    default_value);	  
-	    } else {
-	      elements[mkey] = elt;	      
-	    }
-	  }
-	}
-	break;
+        case UPDATE:
+      	{
+	        auto iter = elements.upper_bound(mkey.range_end());
+	        if (iter != elements.begin()) {
+	          iter--;
+          }
+	        if (iter == elements.end() || iter->first.key != mkey.key) {
+	          if (is_leaf()) {
+	            Value dummy = default_value;
+	            apply(mkey, Message<Value>(INSERT, dummy + elt.val),
+		                default_value);
+	          } else {
+	            elements[mkey] = elt;
+	          }
+          } else {
+	          assert(iter != elements.end() && iter->first.key == mkey.key);
+	          if (iter->second.opcode == INSERT) {
+	            apply(mkey, Message<Value>(INSERT, iter->second.val + elt.val),
+		              default_value);
+	          } else {
+	            elements[mkey] = elt;	      
+	          }
+	        }
+	      }
+	      break;
 
       default:
-	assert(0);
+	      assert(0);
       }
     }
     
@@ -340,7 +343,8 @@ private:
       for (int i = 0; i < num_new_leaves; i++) {
 	if (pivot_idx == pivots.end() && elt_idx == elements.end())
 	  break;
-	node_pointer new_node = bet.ss->allocate(new node);
+  uint64_t targetId;
+	node_pointer new_node = bet.ss->allocate(new node, targetId);
 	result[pivot_idx != pivots.end() ?
 	       pivot_idx->first :
 	       elt_idx->first.key] = child_info(new_node,
@@ -382,7 +386,8 @@ private:
     node_pointer merge(betree &bet,
 		       typename pivot_map::iterator begin,
 		       typename pivot_map::iterator end) {
-      node_pointer new_node = bet.ss->allocate(new node);
+      u_int64_t targetId;
+      node_pointer new_node = bet.ss->allocate(new node, targetId);
       for (auto it = begin; it != end; ++it) {
 	new_node->elements.insert(it->second.child->elements.begin(),
 				  it->second.child->elements.end());
@@ -429,13 +434,14 @@ private:
       pivot_map result;
 
       if (elts.size() == 0) {
-	debug(std::cout << "Done (empty input)" << std::endl);
-	return result;
+	      debug(std::cout << "Done (empty input)" << std::endl);
+	      return result;
       }
 
       if (is_leaf()) {
-	for (auto it = elts.begin(); it != elts.end(); ++it)
-	  apply(it->first, it->second, bet.default_value);
+	      for (auto it = elts.begin(); it != elts.end(); ++it) {
+	        apply(it->first, it->second, bet.default_value);
+        }
 	if (elements.size() + pivots.size() >= bet.max_node_size)
 	  result = split(bet);
 	return result;
@@ -636,8 +642,6 @@ private:
       fs >> dummy;
       deserialize(fs, context, elements);
     }
-
-    
   };
 
   swap_space *ss;
@@ -647,29 +651,55 @@ private:
   node_pointer root;
   uint64_t next_timestamp = 1; // Nothing has a timestamp of 0
   Value default_value;
-  
+  LogManager *log_;
+  u_int64_t RootTargetId_;
 public:
   betree(swap_space *sspace,
 	 uint64_t maxnodesize = DEFAULT_MAX_NODE_SIZE,
 	 uint64_t minnodesize = DEFAULT_MAX_NODE_SIZE / 4,
-	 uint64_t minflushsize = DEFAULT_MIN_FLUSH_SIZE) :
+	 uint64_t minflushsize = DEFAULT_MIN_FLUSH_SIZE,
+   uint64_t persistence_granularity = 16,
+   uint64_t checkpoint_granularity = 8) :
     ss(sspace),
     min_flush_size(minflushsize),
     max_node_size(maxnodesize),
     min_node_size(minnodesize)
   {
-    root = ss->allocate(new node);
+    root = ss->allocate(new node, RootTargetId_);
+    log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity);
   }
 
   // Insert the specified message and handle a split of the root if it
   // occurs.
   void upsert(int opcode, Key k, Value v)
   {
+    u_int64_t txtId = log_->getNextTxtId();
+    u_int64_t lsn = log_->getNextLsn();
+    LogRecordType tp = LogRecordType::INVALID;
+    bool needToDoCheckpoint = false;
+    if (opcode == INSERT) {
+      tp = LogRecordType::INSERT_LOG_RECORD;
+      LogRecord logRec(txtId, lsn, NULL_LSN,
+                tp, INVALID_PAGE_ID, k, v);
+      needToDoCheckpoint = log_->appendLogRec(logRec);
+    } else if (opcode == DELETE) {
+      tp = LogRecordType::DELETE_LOG_RECORD;
+      LogRecord logRec(txtId, lsn, NULL_LSN, tp, INVALID_PAGE_ID, k, "");
+      needToDoCheckpoint = log_->appendLogRec(logRec);
+    } else if (opcode == UPDATE) {
+      tp = LogRecordType::UPDATE_LOG_RECORD;
+      LogRecord logRec(txtId, lsn, NULL_LSN,
+                tp, INVALID_PAGE_ID, k, v);
+      needToDoCheckpoint = log_->appendLogRec(logRec);
+    }
+    if (needToDoCheckpoint) {
+      log_->doCheckPoint(RootTargetId_);
+    }
     message_map tmp;
     tmp[MessageKey<Key>(k, next_timestamp++)] = Message<Value>(opcode, v);
     pivot_map new_nodes = root->flush(*this, tmp);
     if (new_nodes.size() > 0) {
-      root = ss->allocate(new node);
+      root = ss->allocate(new node, RootTargetId_);
       root->pivots = new_nodes;
     }
   }

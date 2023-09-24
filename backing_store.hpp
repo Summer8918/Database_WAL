@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <iostream>
+#include <fstream>
 
 class backing_store {
 public:
@@ -27,6 +28,17 @@ public:
   
 private:
   std::string	root;
+};
+
+class LogFileBackingStore {
+public:
+    LogFileBackingStore(std::string);
+    void appendData(const char* data, int len);
+    std::ifstream * get(int &len);
+    void put(const char* data, int len);
+    void truncateLogFile(int len);
+private:
+    std::string logFile_;
 };
 
 #endif // BACKING_STORE_HPP

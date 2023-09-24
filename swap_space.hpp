@@ -78,6 +78,7 @@
 #include <sstream>
 #include <cassert>
 #include "backing_store.hpp"
+#define DEBUG
 #include "debug.hpp"
 
 class swap_space;
@@ -177,9 +178,11 @@ public:
   //Given a heap pointer, construct a ss object around it.
   //this is used to register nodes in the ss.
   template<class Referent>
-  pointer<Referent> allocate(Referent * tgt) {
-    return pointer<Referent>(this, tgt);
+  pointer<Referent> allocate(Referent * tgt, u_int64_t& targetId) {
+    return pointer<Referent>(this, tgt, targetId);
   }
+
+  void flushAllModifiedPagesIntoDisk(void);
 
   // This pins an object in memory for the duration of a member
   // access.  It's sort of an instance of the "resource aquisition is
@@ -403,11 +406,11 @@ public:
 
     // Only callable through swap_space::allocate(...)
     // This creates new pointers and allocates an object in the ss
-    pointer(swap_space *sspace, Referent *tgt)
+    pointer(swap_space *sspace, Referent *tgt, u_int64_t &targetId)
     {
       ss = sspace;
       target = sspace->next_id++;
-
+      targetId = target;
       object *o = new object(sspace, tgt);
       assert(o != NULL);
       target = o->id;
@@ -469,7 +472,6 @@ private:
   
   uint64_t max_in_memory_objects;
   uint64_t current_in_memory_objects = 0;
-
 
   //structs used in ss
   //objects is a map from targets->objects (target == obj->id)
