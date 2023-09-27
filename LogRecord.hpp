@@ -138,7 +138,7 @@ public:
         buf += head_.afterValueLen;
     }
 
-    // Dump record for debug purpose
+    // Dump record for DEBUG purpose
     std::string debugDump(void) {
         std::ostringstream os;
         os  <<"length:" << head_.length 

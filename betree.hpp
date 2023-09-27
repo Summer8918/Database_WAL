@@ -658,8 +658,8 @@ public:
 	 uint64_t maxnodesize = DEFAULT_MAX_NODE_SIZE,
 	 uint64_t minnodesize = DEFAULT_MAX_NODE_SIZE / 4,
 	 uint64_t minflushsize = DEFAULT_MIN_FLUSH_SIZE,
-   uint64_t persistence_granularity = 16,
-   uint64_t checkpoint_granularity = 8) :
+   uint64_t persistence_granularity = 8,
+   uint64_t checkpoint_granularity = 16) :
     ss(sspace),
     min_flush_size(minflushsize),
     max_node_size(maxnodesize),
@@ -679,8 +679,7 @@ public:
     bool needToDoCheckpoint = false;
     if (opcode == INSERT) {
       tp = LogRecordType::INSERT_LOG_RECORD;
-      LogRecord logRec(txtId, lsn, NULL_LSN,
-                tp, INVALID_PAGE_ID, k, v);
+      LogRecord logRec(txtId, lsn, NULL_LSN, tp, INVALID_PAGE_ID, k, v);
       needToDoCheckpoint = log_->appendLogRec(logRec);
     } else if (opcode == DELETE) {
       tp = LogRecordType::DELETE_LOG_RECORD;
@@ -688,8 +687,7 @@ public:
       needToDoCheckpoint = log_->appendLogRec(logRec);
     } else if (opcode == UPDATE) {
       tp = LogRecordType::UPDATE_LOG_RECORD;
-      LogRecord logRec(txtId, lsn, NULL_LSN,
-                tp, INVALID_PAGE_ID, k, v);
+      LogRecord logRec(txtId, lsn, NULL_LSN,tp, INVALID_PAGE_ID, k, v);
       needToDoCheckpoint = log_->appendLogRec(logRec);
     }
     if (needToDoCheckpoint) {

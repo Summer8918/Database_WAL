@@ -27,6 +27,8 @@ LogRecord.o: LogRecord.hpp
 
 LogManager.o: LogManager.hpp
 
+LogRecover.o: LogRecover.hpp
+
 checkpoint.o: checkpoint.hpp
 
 clean:

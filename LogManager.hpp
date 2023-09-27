@@ -2,7 +2,7 @@
 
 
 #include "LogRecord.hpp"
-#include "checkpoint.hpp"
+// #include "checkpoint.hpp"
 #include "backing_store.hpp"
 #include "swap_space.hpp"
 
@@ -79,7 +79,7 @@ public:
         appendLogRec(checkpointLogRec);
         flushTimes_ = 0;
         debug(std::cout << "start to parse log" << std::endl);
-        //parseLog();
+        parseLog();
     }
 
     u_int64_t getNextTxtId() {
@@ -102,6 +102,7 @@ public:
             cur += lr.getLen();
             i += lr.getLen();
             debug(std::cout << tmp << std::endl);
+            
         }
     }
 /*
