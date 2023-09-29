@@ -652,7 +652,7 @@ private:
   uint64_t next_timestamp = 1; // Nothing has a timestamp of 0
   Value default_value;
   LogManager *log_;
-  u_int64_t RootTargetId_;
+  u_int64_t RootTargetId_ = 0;
 public:
   betree(swap_space *sspace,
 	 uint64_t maxnodesize = DEFAULT_MAX_NODE_SIZE,
@@ -665,8 +665,14 @@ public:
     max_node_size(maxnodesize),
     min_node_size(minnodesize)
   {
-    root = ss->allocate(new node, RootTargetId_);
     log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity);
+    RootTargetId_ = log_.last_checkpoint_root_id();
+    if (RootTargetId_ > 0) {
+      // recover tree
+      root = ss->load_root(RootTargetId_);
+      // TODO: recover log
+    } else
+      root = ss->allocate(new node, RootTargetId_);
   }
 
   // Insert the specified message and handle a split of the root if it
