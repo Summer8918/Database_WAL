@@ -666,7 +666,7 @@ public:
     min_node_size(minnodesize)
   {
     root = ss->allocate(new node, RootTargetId_);
-    log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity);
+    log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity, ss->getRootDir());
   }
 
   // Insert the specified message and handle a split of the root if it
@@ -692,15 +692,16 @@ public:
                 tp, INVALID_PAGE_ID, k, v);
       needToDoCheckpoint = log_->appendLogRec(logRec);
     }
-    if (needToDoCheckpoint) {
-      log_->doCheckPoint(RootTargetId_);
-    }
     message_map tmp;
     tmp[MessageKey<Key>(k, next_timestamp++)] = Message<Value>(opcode, v);
     pivot_map new_nodes = root->flush(*this, tmp);
     if (new_nodes.size() > 0) {
       root = ss->allocate(new node, RootTargetId_);
       root->pivots = new_nodes;
+    }
+    if (needToDoCheckpoint) {
+      u_int64_t rootVersion = ss->getTargetVersion(RootTargetId_);
+      log_->doCheckPoint(RootTargetId_, rootVersion);
     }
   }
 

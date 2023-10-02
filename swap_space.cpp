@@ -58,7 +58,9 @@ swap_space::swap_space(backing_store *bs, uint64_t n) :
   max_in_memory_objects(n),
   objects(),
   lru_pqueue(cmp_by_last_access)
-{}
+{
+  rootDir = bs->getRootDir();
+}
 
 //construct a new object. Called by ss->allocate() via pointer<Referent> construction
 //Does not insert into objects table - that's handled by pointer<Referent>()
@@ -149,7 +151,7 @@ void swap_space::flushAllModifiedPagesIntoDisk(void) {
   auto s = lru_pqueue.size();
   debug(std::cout << "lru_pqueue.size():" << s << std::endl);
   debug(std::cout << "current_in_memory_objects:" << current_in_memory_objects << std::endl);
-  while (current_in_memory_objects > max_in_memory_objects) {
+  while (current_in_memory_objects > 0) {
     object *objToDel = NULL;
     for (auto it = lru_pqueue.begin(); it != lru_pqueue.end(); it++) {
       if ((*it)->pincount != 0) {
@@ -164,6 +166,11 @@ void swap_space::flushAllModifiedPagesIntoDisk(void) {
     lru_pqueue.erase(objToDel);
     write_back(objToDel);
     delete objToDel->target;
+    objToDel->target = NULL;
     current_in_memory_objects--;
   }
+}
+
+std::string swap_space::getRootDir(void) {
+  return rootDir;
 }

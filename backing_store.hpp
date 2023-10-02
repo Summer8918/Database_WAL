@@ -15,6 +15,7 @@ public:
   virtual void deallocate(uint64_t obj_id, uint64_t version) = 0;
   virtual std::iostream * get(uint64_t obj_id, uint64_t version) = 0;
   virtual void            put(std::iostream *ios) = 0;
+  virtual std::string getRootDir(void) = 0;
 };
 
 class one_file_per_object_backing_store: public backing_store {
@@ -25,7 +26,7 @@ public:
   std::iostream * get(uint64_t obj_id, uint64_t version);
   void            put(std::iostream *ios);
   std::string get_filename(uint64_t obj_id, uint64_t version);
-  
+  std::string getRootDir(void);
 private:
   std::string	root;
 };
@@ -37,8 +38,10 @@ public:
     std::ifstream * get(int &len);
     void put(const char* data, int len);
     void truncateLogFile(int len);
+    bool isRecoverNeeded(void);
 private:
     std::string logFile_;
+    bool logExists_;
 };
 
 #endif // BACKING_STORE_HPP

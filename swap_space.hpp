@@ -182,7 +182,19 @@ public:
     return pointer<Referent>(this, tgt, targetId);
   }
 
+  uint64_t getTargetVersion(uint64_t targetId) {
+    debug(std::cout << "targetId:" << targetId << std::endl);
+    if (objects.find(targetId) == objects.end()) {
+      debug(std::cout << "targitId:" << targetId << " not found" << std::endl);
+      return 1;
+    } else {
+      return objects[targetId]->version;
+    }
+  }
+
   void flushAllModifiedPagesIntoDisk(void);
+
+  std::string getRootDir(void);
 
   // This pins an object in memory for the duration of a member
   // access.  It's sort of an instance of the "resource aquisition is
@@ -410,10 +422,10 @@ public:
     {
       ss = sspace;
       target = sspace->next_id++;
-      targetId = target;
       object *o = new object(sspace, tgt);
       assert(o != NULL);
       target = o->id;
+      targetId = target;
       assert(ss->objects.count(target) == 0);
       ss->objects[target] = o;
       ss->lru_pqueue.insert(o);
@@ -424,8 +436,8 @@ public:
   };
   
 private:
-  backing_store *backstore;  
-
+  backing_store *backstore;
+  std::string rootDir;
   uint64_t next_id = 1;
   uint64_t next_access_time = 0;
   

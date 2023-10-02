@@ -21,7 +21,7 @@ public:
         logBuf_ = new char[LOG_BUFFER_SIZE];
         logBufPtr_ = logBuf_;
         //checkpoint_ = new checkPoint();
-        log_ = new LogFileBackingStore(logDir);
+        log_ = new LogFileBackingStore(logDir + "/log");
     }
 
     ~LogManager() {
@@ -66,7 +66,7 @@ public:
         return false;
     }
 
-    void doCheckPoint(u_int64_t rootId) {
+    void doCheckPoint(u_int64_t rootId, u_int64_t rootVersion) {
         u_int64_t curCheckpointLsn = getNextLsn();
         LogRecordType tp = LogRecordType::CHECKOUT_POINT;
         flushLogBuf();
@@ -74,9 +74,11 @@ public:
         // flush all modified blocks in memory
         ss_->flushAllModifiedPagesIntoDisk();
         u_int64_t txtId = getNextTxtId();
+
         LogRecord checkpointLogRec(txtId, curCheckpointLsn, NULL_LSN,
-                tp, rootId);
+                tp, rootId, rootVersion);
         appendLogRec(checkpointLogRec);
+        debug(std::cout << "root id: " << rootId << " version:" << rootVersion);
         flushTimes_ = 0;
         debug(std::cout << "start to parse log" << std::endl);
         //parseLog();
@@ -104,29 +106,10 @@ public:
             debug(std::cout << tmp << std::endl);
         }
     }
-/*
-  bool checkpointing() {
-    long long curCheckpointLsn = logManager_->getNextLsn();
-    writeCheckPointBeginLog();
-    flushLogRecordsInMemory();
-    flushAllModifiedBlocksInMemory();
-    curCheckpointLsn = logManager_->getNextLsn();
-    writeCheckPointEndLog(curCheckpointLsn);
-    logManager_->trancateLogFile(lastCheckpointLsn_);
-    lastCheckpointLsn_ = curCheckpointLsn;
-  }
-  
-  bool flushLogRecordsInMemory() {
-    logManager_->flushLogBuf();
-  }
-  bool flushAllModifiedBlocksInMemory();
-  bool writeCheckPointBeginLog(long long lsn);
-  bool writeCheckPointEndLog(long long lsn);
-private:
-  long long lastCheckpointLsn_;
-  LogManager *logManager_;
-};
-*/
+
+    bool isRecoverNeeded(void) {
+        return log_->isRecoverNeeded();
+    }
 private:
   LogFileBackingStore *log_;
   swap_space *ss_;

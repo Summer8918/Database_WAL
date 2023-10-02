@@ -25,7 +25,6 @@ void one_file_per_object_backing_store::allocate(uint64_t obj_id, uint64_t versi
   //return id;
 }
 
-
 //delete the file associated with an specific version of a node
 void one_file_per_object_backing_store::deallocate(uint64_t obj_id, uint64_t version) {
   std::string filename = get_filename(obj_id, version);
@@ -65,18 +64,42 @@ std::string one_file_per_object_backing_store::get_filename(uint64_t obj_id, uin
 
 }
 
+std::string one_file_per_object_backing_store::getRootDir(void) {
+  return root;
+}
+
 LogFileBackingStore::LogFileBackingStore(std::string logFile)
 {
     logFile_ = logFile;
-    std::fstream dummy(logFile_, std::fstream::out);
-    dummy.flush();
-    assert(dummy.good());
+    std::ifstream file(logFile_);
+    std::string oldLogFile = logFile_ + ".old";
+    std::ifstream fileOld(oldLogFile);
+    // Check if logFile is open(i.e., it exists)
+    if (file.is_open() || fileOld.is_open()) {
+        if (file.is_open()) {
+            debug(std::cout << "filename:" << logFile << " exists." << std::endl);
+            file.close();
+        } else {
+            debug(std::cout << "filename:" << oldLogFile << " exists." << std::endl);
+            fileOld.close();
+            assert(std::rename(oldLogFile.c_str(), logFile_.c_str()) == 0);
+        }
+        logExists_ = true;
+    } else {
+        debug(std::cout << "new log" << this << std::endl);
+        std::fstream dummy(logFile_, std::fstream::out);
+        dummy.flush();
+        assert(dummy.good());
+        dummy.close();
+        logExists_ = false;
+    }
 }
 
 void LogFileBackingStore::appendData(const char* data, int len) {
   std::ofstream file(logFile_, std::ios::app | std::ios::binary);
   assert(file.is_open());
   file.write(data, len);
+  file.close();
   // flush file to disk
   file.flush();
 }
@@ -94,8 +117,8 @@ std::ifstream*  LogFileBackingStore::get(int &len) {
 }
 
 void LogFileBackingStore::put(const char* data, int len) {
-    std::string oldLogFile = "log.old";
-    assert(std::rename(logFile_.c_str(), oldLogFile.c_str()) == 0); 
+    std::string oldLogFile = logFile_ + ".old";
+    assert(std::rename(logFile_.c_str(), oldLogFile.c_str()) == 0);
     std::ofstream file(logFile_, std::ofstream::out);
     assert(file.is_open());
     file.write(data, len);
@@ -138,4 +161,8 @@ void LogFileBackingStore::truncateLogFile(int len) {
     // Close the file
     nFile.close();
     nFile.flush();
+}
+
+bool LogFileBackingStore::isRecoverNeeded(void) {
+    return logExists_;
 }

@@ -50,8 +50,7 @@ class LogRecord{
 public:
     LogRecord() {}
 
-    // Constructor for ABORT, BEGIN, CHECKPOINT, CLR and COMMIT type
-    // As for CHECKPOINT type, pageId is the root object ID.
+    // Constructor for ABORT, BEGIN, CLR and COMMIT type
     LogRecord(uint64_t txtId,
                 uint64_t lsn, 
                 uint64_t prevLsn,
@@ -68,6 +67,26 @@ public:
         head_.length = LOG_RECORD_HEAD_LEN + head_.afterValueLen 
                     + head_.beforeValueLen + head_.keyLen;
         key_ = INVALID_KEY;
+    }
+
+    // Constructor for CHECKPOINT type, pageId is the root object ID and key is the version.
+    LogRecord(uint64_t txtId,
+                uint64_t lsn,
+                uint64_t prevLsn,
+                LogRecordType logRecordType,
+                uint64_t pageId,
+                uint64_t version) {
+        head_.recType = logRecordType;
+        head_.transactionId = txtId;
+        head_.lsn = lsn;
+        head_.preLsn = prevLsn;
+        head_.pageId = pageId;
+        head_.afterValueLen = 0;
+        head_.beforeValueLen = 0;
+        head_.keyLen = 0;
+        head_.length = LOG_RECORD_HEAD_LEN + head_.afterValueLen
+                    + head_.beforeValueLen + head_.keyLen;
+        key_ = version;
     }
 
     // Constructor for DELETE, INSERT and UPDATE without beforeValue
