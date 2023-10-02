@@ -68,9 +68,19 @@ std::string one_file_per_object_backing_store::get_filename(uint64_t obj_id, uin
 LogFileBackingStore::LogFileBackingStore(std::string logFile)
 {
     logFile_ = logFile;
-    std::fstream dummy(logFile_, std::fstream::out);
-    dummy.flush();
-    assert(dummy.good());
+    // Try to open log file
+    std::ifstream log_stream;   
+    log_stream.open(logFile);
+    if (log_stream){
+      debug(std::cout << "log exits " << this << std::endl);
+      // if success, read log length
+      std::ifstream* dummy = get(length);
+    } else {
+      debug(std::cout << "new log" << this << std::endl);
+      std::fstream dummy(logFile_, std::fstream::out);
+      dummy.flush();
+      assert(dummy.good());
+    }
 }
 
 void LogFileBackingStore::appendData(const char* data, int len) {

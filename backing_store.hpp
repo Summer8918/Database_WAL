@@ -37,6 +37,7 @@ public:
     std::ifstream * get(int &len);
     void put(const char* data, int len);
     void truncateLogFile(int len);
+    int length = 0;
 private:
     std::string logFile_;
 };

@@ -182,6 +182,11 @@ public:
     return pointer<Referent>(this, tgt, targetId);
   }
 
+  template<class Referent>
+  pointer<Referent> load_root(Referent * obj, u_int64_t id, uint64_t version) {
+    return pointer<Referent>(this, obj, id, version);
+  }
+
   void flushAllModifiedPagesIntoDisk(void);
 
   // This pins an object in memory for the duration of a member
@@ -268,7 +273,7 @@ public:
       ss->load<Referent>(tgt);
       ss->maybe_evict_something();
     }
-  
+
     swap_space *ss;
     uint64_t target;
   };
@@ -419,6 +424,13 @@ public:
       ss->lru_pqueue.insert(o);
       ss->current_in_memory_objects++;
       ss->maybe_evict_something();
+    }
+    /* This load an Referent from disk.*/
+    pointer(swap_space *sspace, Referent *tgt, u_int64_t targetId, int64_t version) {
+      ss = sspace;
+      target = targetId;
+      object *o = new object(sspace, tgt);
+      // TODO load root in to ss.objects;
     }
 
   };

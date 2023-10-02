@@ -665,12 +665,13 @@ public:
     max_node_size(maxnodesize),
     min_node_size(minnodesize)
   {
+
     log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity);
-    RootTargetId_ = log_.last_checkpoint_root_id();
-    if (RootTargetId_ > 0) {
+    if (log_->lastCheckpointLsn_ > 0) {
       // recover tree
-      root = ss->load_root(RootTargetId_);
-      // TODO: recover log
+      uint64_t root_version;
+      log_.get_root(RootTargetId_, root_version);
+      root = ss->load_root(new node, RootTargetId_, root_version);
     } else
       root = ss->allocate(new node, RootTargetId_);
   }

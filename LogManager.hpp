@@ -2,7 +2,7 @@
 
 
 #include "LogRecord.hpp"
-#include "checkpoint.hpp"
+// #include "checkpoint.hpp"
 #include "backing_store.hpp"
 #include "swap_space.hpp"
 
@@ -12,6 +12,7 @@
 
 class LogManager {
 public:
+    long long lastCheckpointLsn_ = 0;
     LogManager(swap_space *ss, uint64_t persistence_granularity = PERSISTENCE_GRANULARITY, 
             uint64_t checkpoint_granularity = CHECKPOINT_GRANULARITY, 
             std::string logDir = "log") 
@@ -22,6 +23,10 @@ public:
         logBufPtr_ = logBuf_;
         //checkpoint_ = new checkPoint();
         log_ = new LogFileBackingStore(logDir);
+        if (log_->length > 0) {
+            debug(std::cout << "load log file." << this << std::endl);
+            // TODO: load log, set lastCheckpointLsn_
+        }
     }
 
     ~LogManager() {
@@ -59,7 +64,7 @@ public:
         logRec.serialize(logBufPtr_, len);
         logBufPtr_ += len;
         bufLen += len;
-        if (flushTimes_ >= persistenceGranularity_) {
+        if (flushTimes_ >= checkpointGranularity_) {
             debug(std::cout << "Need to do check pointing" << std::endl);
             return true;
         }
@@ -104,6 +109,8 @@ public:
             debug(std::cout << tmp << std::endl);
         }
     }
+
+    void get_root(u_int64_t & root_id, uint64_t & root_version);
 /*
   bool checkpointing() {
     long long curCheckpointLsn = logManager_->getNextLsn();
@@ -111,7 +118,7 @@ public:
     flushLogRecordsInMemory();
     flushAllModifiedBlocksInMemory();
     curCheckpointLsn = logManager_->getNextLsn();
-    writeCheckPointEndLog(curCheckpointLsn);
+    writeCheckPointEndLog();
     logManager_->trancateLogFile(lastCheckpointLsn_);
     lastCheckpointLsn_ = curCheckpointLsn;
   }
@@ -141,5 +148,4 @@ private:
   int checkpointGranularity_;
   int persistenceGranularity_;
   int flushTimes_ = 0;
-  long long lastCheckpointLsn_ = 0;
 };
