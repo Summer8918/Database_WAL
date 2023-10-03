@@ -665,19 +665,10 @@ public:
     max_node_size(maxnodesize),
     min_node_size(minnodesize)
   {
-    
-    log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity, ss->getRootDir());
-    
-    if(log_->isRecoverNeeded == true){
-      auto checkpoint = logManager->getMostRecentCheckpoint();
-      uint64_t rootId = checkpoint.first;
-      uint64_t rootVersion = checkpoint.second;
-      ss->rebuild_tree(ss, rootId, rootVersion);
-    }
-    
     root = ss->allocate(new node, RootTargetId_);
+    log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity, ss->getRootDir());
   }
-  
+
   // Insert the specified message and handle a split of the root if it
   // occurs.
   void upsert(int opcode, Key k, Value v)

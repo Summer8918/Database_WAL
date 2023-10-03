@@ -2,7 +2,7 @@
 
 
 #include "LogRecord.hpp"
-//#include "checkpoint.hpp"
+#include "checkpoint.hpp"
 #include "backing_store.hpp"
 #include "swap_space.hpp"
 
@@ -110,33 +110,6 @@ public:
     bool isRecoverNeeded(void) {
         return log_->isRecoverNeeded();
     }
-
-    std::pair<uint64_t, uint64_t> getMostRecentCheckpoint() {
-        int len = 0;
-        std::ifstream* logStream = log_->get(len);
-        char* buffer = new char[len];
-        logStream->read(buffer, len);
-
-        // Start from the end of the buffer
-        char* cur = buffer + len;
-
-        // Iterate in reverse until we find a CHECKOUT_POINT or reach the beginning
-        while (cur > buffer) {
-            LogRecord lr(cur, len);
-            if (lr.getLogRecType() == LogRecordType::CHECKOUT_POINT) {
-                uint64_t rootId = lr.getPageId();
-                uint64_t rootVersion = lr.getKey();
-                delete[] buffer;
-                return std::make_pair(rootId, rootVersion);
-            }
-            cur -= lr.getLen();
-        }
-
-        delete[] buffer;
-        // Return a pair of invalid IDs if no checkpoint is found
-        return std::make_pair(INVALID_PAGE_ID, INVALID_KEY);
-    }
-    
 private:
   LogFileBackingStore *log_;
   swap_space *ss_;
