@@ -8,7 +8,6 @@ There are two parameters that your logging class will need to accept (depending 
 
 ## BUILDING THE TEST PROGRAM
 
-
 You can compile the tests using the provided Makefile: `make clean && make test_logging_restore`.
 
 Your Makefile may differ slightly as you will need to ensure your logging is compiled. Please be sure to modify the Makefile properly so that the logging functionality you create is also compiled and found.

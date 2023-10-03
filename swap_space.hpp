@@ -412,6 +412,29 @@ public:
       // stays the same.
     }
 
+    template<class Referent>
+void rebuild_tree(swap_space& ss, uint64_t node_id, uint64_t version_id) {
+    // Load the node with the given ID and version
+    ss.load(node_id); 
+
+    // Get the node object from the swap_space's objects map
+    auto obj = ss.objects[node_id];
+    Referent* node = dynamic_cast<Referent*>(obj->target);
+    
+    if (!node) {
+        // Handle error: couldn't cast to the expected node type
+        return;
+    }
+
+    // Get the children IDs (assuming the node has a method for this)
+    auto children_ids = node->get_children_ids();
+
+    // Recursively rebuild the tree for each child
+    for (auto child_id : children_ids) {
+        rebuild_tree(ss, child_id, version_id);  // Assuming all nodes have the same version for simplicity
+    }
+}
+
   private:
     swap_space *ss;
     uint64_t target;

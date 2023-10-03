@@ -27,7 +27,7 @@ LogRecord.o: LogRecord.hpp
 
 LogManager.o: LogManager.hpp
 
-checkpoint.o: checkpoint.hpp
+
 
 clean:
 	$(RM) *.o test test_logging_restore generate
