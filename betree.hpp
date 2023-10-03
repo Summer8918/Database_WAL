@@ -667,6 +667,18 @@ public:
   {
     root = ss->allocate(new node, RootTargetId_);
     log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity, ss->getRootDir());
+    if (log_->isRecoverNeeded()) {
+      uint64_t rootId = 0, rootVer = 0;
+      log_->getRootInfoForRecovery(rootId, rootVer);
+      int redoLogRecNum = log_->getRedoLogRecordNumber();
+      debug(std::cout << "redoLogRecNum:" << redoLogRecNum << std::endl);
+      for (int i = 0; i < redoLogRecNum; i++) {
+        debug(std::cout << "i=:" << i << std::endl);
+        LogRecord lr;
+        log_->getRedoLog(i, lr);
+        lr.debugDump();
+      }
+    }
   }
 
   // Insert the specified message and handle a split of the root if it

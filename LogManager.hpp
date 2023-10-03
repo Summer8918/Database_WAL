@@ -9,6 +9,7 @@
 #define LOG_BUFFER_SIZE  4096
 #define CHECKPOINT_GRANULARITY 8
 #define PERSISTENCE_GRANULARITY 16
+#define MAX_LOG_RECORD_SIZE 96
 
 class LogManager {
 public:
@@ -88,6 +89,65 @@ public:
         return txtId_++;
     }
 
+    bool getRootInfoForRecovery(uint64_t &rootId, u_int64_t &rootVer) {
+        int len = 0;
+        std::ifstream* logStream = log_->get(len);
+        debug(std::cout << "On disk log length:" << len << std::endl);
+
+        // Create a char* buffer to hold the content
+        bool flag = false;
+        char* buffer = new char[LOG_BUFFER_SIZE];
+        int readLen = 0;
+        int i = LOG_BUFFER_SIZE;
+        while (readLen < len) {
+            // Read the content of the file into the buffer and find the latest checkpoint log record
+            logStream->read(buffer + LOG_BUFFER_SIZE - i, i);
+            char * cur = buffer;
+            i = 0;
+            while (i + MAX_LOG_RECORD_SIZE <= LOG_BUFFER_SIZE && readLen + i + LOG_RECORD_HEAD_LEN <= len) {
+                LogRecord lr(cur, MAX_LOG_RECORD_SIZE);
+                //lr.debugDump();
+
+                cur += lr.getLen();
+                i += lr.getLen();
+
+                if (lr.getLogRecType() != LogRecordType::CHECKOUT_POINT) {
+                    redoLog_.push_back(lr);
+                } else {
+                    // clear redoLog_ vector to store the operations after the newer checkpoint
+                    redoLog_.clear();
+                    // store the root id and version in checkpoint log record
+                    rootId = lr.getPageId();
+                    rootVer = lr.getKey();
+                    flag = true;
+                }
+                //debug(std::cout << "redoLog_.size():" << redoLog_.size() << std::endl);
+            }
+            memcpy(buffer, cur, LOG_BUFFER_SIZE - i);
+            readLen += i;
+            //std::cout << "readLen" << readLen << std::endl;
+        }
+        delete[] buffer;
+        debug(std::cout << "redoLog_.size():" << redoLog_.size() << std::endl);
+        debug(std::cout << "rootId:" << rootId << " rootVer:" << rootVer << std::endl);
+        return flag;
+    }
+
+    int getRedoLogRecordNumber(void) {
+        return redoLog_.size();
+    }
+
+    // i is the index for redoLog_
+    // return True if get suceessfully redoLog_[i]
+    // return False if fail to get redoLog_[i]
+    bool getRedoLog(int i, LogRecord &lr) {
+        if (i >= redoLog_.size()) {
+            return false;
+        }
+        lr = redoLog_[i];
+        return true;
+    }
+
     void parseLog() {
         int len = 0;
         std::ifstream* logStream = log_->get(len);
@@ -100,10 +160,9 @@ public:
         char * cur = buffer;
         for (int i = 0; i < len; ) {
             LogRecord lr(cur, len - i);
-            std::string tmp = lr.debugDump();
+            //lr.debugDump();
             cur += lr.getLen();
             i += lr.getLen();
-            debug(std::cout << tmp << std::endl);
         }
     }
 
@@ -125,4 +184,5 @@ private:
   int persistenceGranularity_;
   int flushTimes_ = 0;
   long long lastCheckpointLsn_ = 0;
+  std::vector<LogRecord> redoLog_;
 };

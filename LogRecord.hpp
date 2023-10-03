@@ -83,10 +83,11 @@ public:
         head_.pageId = pageId;
         head_.afterValueLen = 0;
         head_.beforeValueLen = 0;
-        head_.keyLen = 0;
+        head_.keyLen = KEY_LEN;
         head_.length = LOG_RECORD_HEAD_LEN + head_.afterValueLen
                     + head_.beforeValueLen + head_.keyLen;
         key_ = version;
+
     }
 
     // Constructor for DELETE, INSERT and UPDATE without beforeValue
@@ -145,8 +146,11 @@ public:
 
     // Construct LogRecord according to data in binary. Function like deserialize 
     LogRecord(const char *buf, int len) {
+        //debug(std::cout << "len: " << len << std::endl);
         assert(len >= LOG_RECORD_HEAD_LEN);
+        //debug(std::cout << "LOG_RECORD_HEAD_LEN: " << LOG_RECORD_HEAD_LEN << std::endl);
         memcpy(&head_, buf, LOG_RECORD_HEAD_LEN);
+        //debug(std::cout << "head_.length: " << head_.length << std::endl);
         assert(len >= head_.length);
         buf += LOG_RECORD_HEAD_LEN;
         memcpy(&key_, buf, head_.keyLen);
@@ -157,10 +161,14 @@ public:
         buf += head_.afterValueLen;
     }
 
+    LogRecordHead getHead(void) {
+        return this->head_;
+    }
+
     // Dump record for debug purpose
-    std::string debugDump(void) {
+    void debugDump(void) {
         std::ostringstream os;
-        os  <<"length:" << head_.length 
+        os  <<"length:" << head_.length
             << " recType" << (int) head_.recType
             << " transactionId:" << head_.transactionId
             << " LSN:" << head_.lsn
@@ -173,7 +181,7 @@ public:
             << " beforeValue_:" << beforeValue_
             << " afterValue_:" << afterValue_
             << std::endl;
-        return os.str();
+        debug(std::cout << os.str() << std::endl);
     }
 
     // The length of LogRecord
@@ -233,6 +241,16 @@ public:
         return afterValue_;
     }
 
+    LogRecord& operator=(LogRecord &other) {
+        if (this == &other) {
+            return *this;
+        }
+        this->head_ = other.getHead();
+        this->key_ = other.getKey();
+        this->beforeValue_ = other.getBeforeVal();
+        this->afterValue_ = other.getAfterVal();
+        return *this;
+    }
 private:
     LogRecordHead head_;
     Key key_;
