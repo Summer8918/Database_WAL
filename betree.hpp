@@ -665,8 +665,37 @@ public:
     max_node_size(maxnodesize),
     min_node_size(minnodesize)
   {
-    root = ss->allocate(new node, RootTargetId_);
+    //root = ss->allocate(new node, RootTargetId_);
     log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity, ss->getRootDir());
+    if (log_->isRecoverNeeded == true){
+      // recover tree
+      // find lastcheckpoint, version, root id,
+
+    #include <filesystem>
+    namespace fs = std::filesystem;
+    fs::path root_directory = "tmpdir"
+    using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
+    for (const auto& dirEntry : recursive_directory_iterator(root_directory))
+
+      std::vector<string> filenames;
+      for (auto filename : filenames) {
+        u_int64_t id;
+        int64_t version;
+        get_id_version(filename, id, version);
+        objects[id] = new object();
+        objects[id]->target
+        load<u_int64_t>(id); 
+      // get RootTargetId_, root_version from log_
+        log_.get_root(RootTargetId_, root_version);
+
+        root_version=getTargetVersion(RootTargetId_)
+      // set root
+        root = pointer<Referent>(ss, objects[RootTargetId_]->target, RootTargetId_);
+        // root = ss->load_root(new node, RootTargetId_, root_version);
+      }
+      else
+      
+      root = ss->allocate(new node, RootTargetId_);
   }
 
   // Insert the specified message and handle a split of the root if it

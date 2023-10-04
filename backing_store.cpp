@@ -87,12 +87,14 @@ LogFileBackingStore::LogFileBackingStore(std::string logFile)
         logExists_ = true;
     } else {
         debug(std::cout << "new log" << this << std::endl);
+        debug(std::cout << "logFile_:" << logFile_ << std::endl);
         std::fstream dummy(logFile_, std::fstream::out);
         dummy.flush();
         assert(dummy.good());
         dummy.close();
         logExists_ = false;
     }
+    
 }
 
 void LogFileBackingStore::appendData(const char* data, int len) {

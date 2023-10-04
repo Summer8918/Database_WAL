@@ -80,6 +80,7 @@
 #include "backing_store.hpp"
 #define DEBUG
 #include "debug.hpp"
+#include <vector>
 
 class swap_space;
 
@@ -489,6 +490,14 @@ private:
   //objects is a map from targets->objects (target == obj->id)
   std::unordered_map<uint64_t, object *> objects;
   std::set<object *, bool (*)(object *, object *)> lru_pqueue;
-};
+  std::vector<uint64_t> getAllKeys(const std::unordered_map<uint64_t, object *> &map) {
+    std::vector<uint64_t> keys;
+    for (const auto &entry : map) {
+        keys.push_back(entry.first);
+    }
+    return keys;
+    }
 
+
+}
 #endif // SWAP_SPACE_HPP
