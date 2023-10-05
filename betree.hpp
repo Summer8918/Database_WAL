@@ -684,12 +684,21 @@ public:
         for (auto it = objsMap.begin(); it != objsMap.end(); it++) {
           debug(std::cout << "target id:" << it->first <<
             "version:" << it->second << std::endl);
+            ss->create_object_with_id_and_version(it->first,it->second);
         }
         for (int i = 0; i < redoLogRecNum; i++) {
           debug(std::cout << "i=:" << i << std::endl);
           log_->getRedoLog(i, lr);
+          if(lr.getLogRecType() == LogRecordType::INSERT_LOG_RECORD){
+            upsert(INSERT, lr.getKey(), lr.getAfterVal());
+          }else if(lr.getLogRecType() == LogRecordType::UPDATE_LOG_RECORD){
+            upsert(UPDATE,lr.getKey(), lr.getAfterVal());
+          }else if(lr.getLogRecType() == LogRecordType::DELETE_LOG_RECORD){
+            upsert(DELETE,lr.getKey(), lr.getAfterVal());
+          }
           lr.debugDump();
         }
+        log_->unableRecover();
       } else {
         debug(std::cout << "no checkout point found" << std::endl);
       }
@@ -700,25 +709,35 @@ public:
   // occurs.
   void upsert(int opcode, Key k, Value v)
   {
-    u_int64_t txtId = log_->getNextTxtId();
-    u_int64_t lsn = log_->getNextLsn();
-    LogRecordType tp = LogRecordType::INVALID;
-    bool needToDoCheckpoint = false;
-    if (opcode == INSERT) {
-      tp = LogRecordType::INSERT_LOG_RECORD;
-      LogRecord logRec(txtId, lsn, NULL_LSN,
-                tp, INVALID_PAGE_ID, k, v);
-      needToDoCheckpoint = log_->appendLogRec(logRec);
-    } else if (opcode == DELETE) {
-      tp = LogRecordType::DELETE_LOG_RECORD;
-      LogRecord logRec(txtId, lsn, NULL_LSN, tp, INVALID_PAGE_ID, k, "");
-      needToDoCheckpoint = log_->appendLogRec(logRec);
-    } else if (opcode == UPDATE) {
-      tp = LogRecordType::UPDATE_LOG_RECORD;
-      LogRecord logRec(txtId, lsn, NULL_LSN,
-                tp, INVALID_PAGE_ID, k, v);
-      needToDoCheckpoint = log_->appendLogRec(logRec);
+    if(log_->isRecoverNeeded() == false){
+      u_int64_t txtId = log_->getNextTxtId();
+      u_int64_t lsn = log_->getNextLsn();
+      LogRecordType tp = LogRecordType::INVALID;
+      bool needToDoCheckpoint = false;
+      if (opcode == INSERT) {
+        tp = LogRecordType::INSERT_LOG_RECORD;
+        LogRecord logRec(txtId, lsn, NULL_LSN,
+                  tp, INVALID_PAGE_ID, k, v);
+        needToDoCheckpoint = log_->appendLogRec(logRec);
+      } else if (opcode == DELETE) {
+        tp = LogRecordType::DELETE_LOG_RECORD;
+        LogRecord logRec(txtId, lsn, NULL_LSN, tp, INVALID_PAGE_ID, k, "");
+        needToDoCheckpoint = log_->appendLogRec(logRec);
+      } else if (opcode == UPDATE) {
+        tp = LogRecordType::UPDATE_LOG_RECORD;
+        LogRecord logRec(txtId, lsn, NULL_LSN,
+                  tp, INVALID_PAGE_ID, k, v);
+        needToDoCheckpoint = log_->appendLogRec(logRec);
+      }
+
+      if (needToDoCheckpoint) {
+      std::vector<std::pair<u_int64_t, u_int64_t>> idAndVers;
+      ss->getIdAndVerOfAllNodes(idAndVers);
+      u_int64_t rootVersion = ss->getTargetVersion(RootTargetId_);
+      log_->doCheckPoint(RootTargetId_, rootVersion, idAndVers);
+      }
     }
+    
     message_map tmp;
     tmp[MessageKey<Key>(k, next_timestamp++)] = Message<Value>(opcode, v);
     pivot_map new_nodes = root->flush(*this, tmp);
@@ -726,12 +745,7 @@ public:
       root = ss->allocate(new node, RootTargetId_);
       root->pivots = new_nodes;
     }
-    if (needToDoCheckpoint) {
-      std::vector<std::pair<u_int64_t, u_int64_t>> idAndVers;
-      ss->getIdAndVerOfAllNodes(idAndVers);
-      u_int64_t rootVersion = ss->getTargetVersion(RootTargetId_);
-      log_->doCheckPoint(RootTargetId_, rootVersion, idAndVers);
-    }
+    
   }
 
   void insert(Key k, Value v)

@@ -198,6 +198,8 @@ public:
     }
   }
 
+  void create_object_with_id_and_version(uint64_t obj_id, uint64_t obj_version);
+
   void getIdAndVerOfAllNodes(std::vector<std::pair<u_int64_t, u_int64_t>> &idAndVers);
 
   void flushAllModifiedPagesIntoDisk(void);
@@ -288,7 +290,7 @@ public:
       ss->load<Referent>(tgt);
       ss->maybe_evict_something();
     }
-  
+
     swap_space *ss;
     uint64_t target;
   };
@@ -457,7 +459,7 @@ private:
   public:
     
     object(swap_space *sspace, serializable * tgt);
-    
+    object(swap_space *sspace, uint64_t obj_id, uint64_t obj_version); 
     serializable * target;
     uint64_t id;
     uint64_t version;
@@ -469,7 +471,6 @@ private:
   };
 
   static bool cmp_by_last_access(object *a, object *b);
-
 
   //ss load - if the object is not in memory (target != null)
   //bring into memory.

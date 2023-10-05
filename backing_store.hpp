@@ -39,6 +39,7 @@ public:
     void put(const char* data, int len);
     void truncateLogFile(int len);
     bool isRecoverNeeded(void);
+    void unableRecover(void);
 private:
     std::string logFile_;
     bool logExists_;

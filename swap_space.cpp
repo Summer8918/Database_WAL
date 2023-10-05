@@ -186,3 +186,8 @@ void swap_space::getIdAndVerOfAllNodes(std::vector<std::pair<u_int64_t, \
     }
   }
 }
+
+void swap_space::create_object_with_id_and_version(uint64_t obj_id, uint64_t obj_version) { 
+    object* new_obj = new object(this, obj_id, obj_version); 
+    objects[obj_id] = new_obj; // Add the new object to the objects map 
+    }

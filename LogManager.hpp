@@ -172,6 +172,10 @@ public:
     bool isRecoverNeeded(void) {
         return log_->isRecoverNeeded();
     }
+    
+    void unableRecover(void) {
+        log_->unableRecover();
+    }
 private:
   LogFileBackingStore *log_;
   swap_space *ss_;
