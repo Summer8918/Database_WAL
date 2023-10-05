@@ -75,6 +75,7 @@
 #include <map>
 #include <set>
 #include <functional>
+#include <vector>
 #include <sstream>
 #include <cassert>
 #include "backing_store.hpp"
@@ -113,16 +114,21 @@ template<class Key, class Value> void serialize(std::iostream &fs,
 						serialization_context &context,
 						std::map<Key, Value> &mp)
 {
+  
   fs << "map " << mp.size() << " {" << std::endl;
   assert(fs.good());
-  for (auto it = mp.begin(); it != mp.end(); ++it) {
-    fs << "  ";
-    serialize(fs, context, it->first);
-    fs << " -> ";
-    serialize(fs, context, it->second);
-    fs << std::endl;
+  // Avoid core dump when mp.size() == 0
+  if (mp.size() > 0) {
+    for (auto it = mp.begin(); it != mp.end(); ++it) {
+      fs << "  ";
+      serialize(fs, context, it->first);
+      fs << " -> ";
+      serialize(fs, context, it->second);
+      fs << std::endl;
+    }
   }
   fs << "}" << std::endl;
+  
 }
 
 template<class Key, class Value> void deserialize(std::iostream &fs,
@@ -191,6 +197,8 @@ public:
       return objects[targetId]->version;
     }
   }
+
+  void getIdAndVerOfAllNodes(std::vector<std::pair<u_int64_t, u_int64_t>> &idAndVers);
 
   void flushAllModifiedPagesIntoDisk(void);
 

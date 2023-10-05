@@ -11,6 +11,10 @@
 
 #define INVALID_KEY 0xffffffffffffffff
 
+const int NODE_ID_LEN = 8;
+
+const int NODE_VERSION_LEN = 8;
+
 enum class LogRecordType {
     INVALID = 0,
     UPDATE_LOG_RECORD,
@@ -41,6 +45,7 @@ struct LogRecordHead {
     int keyLen;
     int beforeValueLen;
     int afterValueLen;
+    int nodeIdAndVerLen;
 };
 
 const int LOG_RECORD_HEAD_LEN = sizeof(LogRecordHead);
@@ -63,9 +68,11 @@ public:
         head_.pageId = pageId;
         head_.afterValueLen = 0;
         head_.beforeValueLen = 0;
+        head_.nodeIdAndVerLen = 0;
         head_.keyLen = 0;
         head_.length = LOG_RECORD_HEAD_LEN + head_.afterValueLen 
-                    + head_.beforeValueLen + head_.keyLen;
+                    + head_.beforeValueLen + head_.keyLen
+                    + head_.nodeIdAndVerLen;
         key_ = INVALID_KEY;
     }
 
@@ -75,7 +82,8 @@ public:
                 uint64_t prevLsn,
                 LogRecordType logRecordType,
                 uint64_t pageId,
-                uint64_t version) {
+                uint64_t version,
+                std::vector<std::pair<uint64_t, uint64_t>> &idAndVers) {
         head_.recType = logRecordType;
         head_.transactionId = txtId;
         head_.lsn = lsn;
@@ -83,11 +91,13 @@ public:
         head_.pageId = pageId;
         head_.afterValueLen = 0;
         head_.beforeValueLen = 0;
-        head_.keyLen = KEY_LEN;
+        head_.keyLen = sizeof(version);
+        head_.nodeIdAndVerLen = idAndVers.size() * (NODE_ID_LEN + NODE_VERSION_LEN);
         head_.length = LOG_RECORD_HEAD_LEN + head_.afterValueLen
-                    + head_.beforeValueLen + head_.keyLen;
+                    + head_.beforeValueLen + head_.keyLen
+                    + head_.nodeIdAndVerLen;
         key_ = version;
-
+        idAndVers_ = idAndVers;
     }
 
     // Constructor for DELETE, INSERT and UPDATE without beforeValue
@@ -104,6 +114,7 @@ public:
         head_.preLsn = prevLsn;
         head_.pageId = pageId;
         head_.keyLen = KEY_LEN;
+        head_.nodeIdAndVerLen = 0;
         if (logRecordType == LogRecordType::DELETE_LOG_RECORD) {
             head_.beforeValueLen = val.length();
             head_.afterValueLen = 0;
@@ -115,7 +126,8 @@ public:
             afterValue_ = val;
         }
         head_.length = LOG_RECORD_HEAD_LEN + head_.afterValueLen 
-                    + head_.beforeValueLen + head_.keyLen;
+                    + head_.beforeValueLen + head_.keyLen
+                    + head_.nodeIdAndVerLen;
         key_ = k;
     }
 
@@ -136,11 +148,13 @@ public:
         head_.keyLen = KEY_LEN;
         head_.beforeValueLen = beforeVal.length();
         head_.afterValueLen = afterVal.length();
+        head_.nodeIdAndVerLen = 0;
         beforeValue_ = beforeVal;
         afterValue_ = afterVal;
 
         head_.length = LOG_RECORD_HEAD_LEN + head_.afterValueLen 
-                    + head_.beforeValueLen + head_.keyLen;
+                    + head_.beforeValueLen + head_.keyLen +
+                    head_.nodeIdAndVerLen;
         key_ = k;
     }
 
@@ -159,6 +173,16 @@ public:
         buf += head_.beforeValueLen;
         afterValue_.assign(buf, head_.afterValueLen);
         buf += head_.afterValueLen;
+        if (head_.nodeIdAndVerLen > 0) {
+            for (int i = 0; i < head_.nodeIdAndVerLen; i += (NODE_VERSION_LEN + NODE_ID_LEN)) {
+                std::pair<uint64_t, uint64_t> p;
+                memcpy(&p.first, buf, NODE_ID_LEN);
+                buf += NODE_ID_LEN;
+                memcpy(&p.second, buf, NODE_VERSION_LEN);
+                buf += NODE_VERSION_LEN;
+                idAndVers_.push_back(p);
+            }
+        }
     }
 
     LogRecordHead getHead(void) {
@@ -168,7 +192,7 @@ public:
     // Dump record for debug purpose
     void debugDump(void) {
         std::ostringstream os;
-        os  <<"length:" << head_.length
+        os  << "length:" << head_.length
             << " recType" << (int) head_.recType
             << " transactionId:" << head_.transactionId
             << " LSN:" << head_.lsn
@@ -176,11 +200,16 @@ public:
             << " pageId:" << head_.pageId
             << " keyLen:" << head_.keyLen
             << " beforeValueLen:" << head_.beforeValueLen
-            << " afterValueLen:" << head_.afterValueLen 
+            << " afterValueLen:" << head_.afterValueLen
+            << " nodeIdAndVerLen" << head_.nodeIdAndVerLen
             << " Key:" << key_
             << " beforeValue_:" << beforeValue_
             << " afterValue_:" << afterValue_
             << std::endl;
+        for (int i = 0; i < idAndVers_.size(); i++) {
+            os << "idAndVers_[" << i << "], id:" << idAndVers_[i].first
+                << " version:" << idAndVers_[i].second << std::endl;
+        }
         debug(std::cout << os.str() << std::endl);
     }
 
@@ -205,6 +234,14 @@ public:
         if (head_.afterValueLen > 0) {
             memcpy(buf, afterValue_.c_str(), head_.afterValueLen);
             buf += head_.afterValueLen;
+        }
+        if (head_.nodeIdAndVerLen > 0) {
+            for (int i = 0; i < idAndVers_.size(); i++) {
+                memcpy(buf, &idAndVers_[i].first, NODE_ID_LEN);
+                buf += NODE_ID_LEN;
+                memcpy(buf, &idAndVers_[i].second, NODE_VERSION_LEN);
+                buf += NODE_VERSION_LEN;
+            }
         }
         return head_.length;
     }
@@ -249,11 +286,23 @@ public:
         this->key_ = other.getKey();
         this->beforeValue_ = other.getBeforeVal();
         this->afterValue_ = other.getAfterVal();
+        this->idAndVers_ = other.getIdAndVers();
         return *this;
+    }
+
+    std::vector<std::pair<uint64_t, uint64_t>> getIdAndVers(void) {
+        return idAndVers_;
+    }
+
+    void generateIdAndVersMap(std::unordered_map<uint64_t, uint64_t> &objsMap) {
+        for (int i = 0; i < idAndVers_.size(); i++) {
+            objsMap[idAndVers_[i].first] = idAndVers_[i].second;
+        }
     }
 private:
     LogRecordHead head_;
     Key key_;
     Value beforeValue_;
     Value afterValue_;
+    std::vector<std::pair<uint64_t, uint64_t>> idAndVers_;
 };

@@ -177,3 +177,12 @@ void swap_space::flushAllModifiedPagesIntoDisk(void) {
 std::string swap_space::getRootDir(void) {
   return rootDir;
 }
+
+void swap_space::getIdAndVerOfAllNodes(std::vector<std::pair<u_int64_t, \
+      u_int64_t>> &idAndVers) {
+  for (auto it = objects.begin(); it != objects.end(); it++) {
+    if (it->second->refcount > 0) {
+      idAndVers.push_back({it->first, it->second->version});
+    }
+  }
+}

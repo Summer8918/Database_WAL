@@ -1,6 +1,5 @@
 #include <cstring>
 
-
 #include "LogRecord.hpp"
 #include "backing_store.hpp"
 #include "swap_space.hpp"
@@ -8,7 +7,7 @@
 #define LOG_BUFFER_SIZE  4096
 #define CHECKPOINT_GRANULARITY 8
 #define PERSISTENCE_GRANULARITY 16
-#define MAX_LOG_RECORD_SIZE 96
+#define MAX_LOG_RECORD_SIZE 1024
 
 class LogManager {
 public:
@@ -66,7 +65,8 @@ public:
         return false;
     }
 
-    void doCheckPoint(u_int64_t rootId, u_int64_t rootVersion) {
+    void doCheckPoint(u_int64_t rootId, u_int64_t rootVersion,
+        std::vector<std::pair<u_int64_t, u_int64_t>> &idAndVers) {
         u_int64_t curCheckpointLsn = getNextLsn();
         LogRecordType tp = LogRecordType::CHECKOUT_POINT;
         flushLogBuf();
@@ -76,7 +76,7 @@ public:
         u_int64_t txtId = getNextTxtId();
 
         LogRecord checkpointLogRec(txtId, curCheckpointLsn, NULL_LSN,
-                tp, rootId, rootVersion);
+                tp, rootId, rootVersion, idAndVers);
         appendLogRec(checkpointLogRec);
         debug(std::cout << "root id: " << rootId << " version:" << rootVersion);
         flushTimes_ = 0;
@@ -88,7 +88,7 @@ public:
         return txtId_++;
     }
 
-    bool getRootInfoForRecovery(uint64_t &rootId, u_int64_t &rootVer) {
+    bool getInfoForRecovery(uint64_t &rootId, u_int64_t &rootVer) {
         int len = 0;
         std::ifstream* logStream = log_->get(len);
         debug(std::cout << "On disk log length:" << len << std::endl);
@@ -113,8 +113,12 @@ public:
                 if (lr.getLogRecType() != LogRecordType::CHECKOUT_POINT) {
                     redoLog_.push_back(lr);
                 } else {
+                    //debug(std::cout << "add checkpoint into log" << std::endl);
+                    //lr.debugDump();
                     // clear redoLog_ vector to store the operations after the newer checkpoint
                     redoLog_.clear();
+                    // The first log record is the latest checkpoint.
+                    redoLog_.push_back(lr);
                     // store the root id and version in checkpoint log record
                     rootId = lr.getPageId();
                     rootVer = lr.getKey();

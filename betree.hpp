@@ -669,14 +669,29 @@ public:
     log_ = new LogManager (ss, persistence_granularity, checkpoint_granularity, ss->getRootDir());
     if (log_->isRecoverNeeded()) {
       uint64_t rootId = 0, rootVer = 0;
-      log_->getRootInfoForRecovery(rootId, rootVer);
+      log_->getInfoForRecovery(rootId, rootVer);
       int redoLogRecNum = log_->getRedoLogRecordNumber();
       debug(std::cout << "redoLogRecNum:" << redoLogRecNum << std::endl);
-      for (int i = 0; i < redoLogRecNum; i++) {
-        debug(std::cout << "i=:" << i << std::endl);
+      // The first log record of redo log is the checkpoint log record.
+      if (redoLogRecNum > 0) {
         LogRecord lr;
-        log_->getRedoLog(i, lr);
-        lr.debugDump();
+        log_->getRedoLog(0, lr);
+        //lr.debugDump();
+        // All nodes of tree except the root node's target id and version is stored
+        // in objsMap at the latest checkpoint.
+        std::unordered_map<uint64_t, uint64_t> objsMap;
+        lr.generateIdAndVersMap(objsMap);
+        for (auto it = objsMap.begin(); it != objsMap.end(); it++) {
+          debug(std::cout << "target id:" << it->first <<
+            "version:" << it->second << std::endl);
+        }
+        for (int i = 0; i < redoLogRecNum; i++) {
+          debug(std::cout << "i=:" << i << std::endl);
+          log_->getRedoLog(i, lr);
+          lr.debugDump();
+        }
+      } else {
+        debug(std::cout << "no checkout point found" << std::endl);
       }
     }
   }
@@ -712,8 +727,10 @@ public:
       root->pivots = new_nodes;
     }
     if (needToDoCheckpoint) {
+      std::vector<std::pair<u_int64_t, u_int64_t>> idAndVers;
+      ss->getIdAndVerOfAllNodes(idAndVers);
       u_int64_t rootVersion = ss->getTargetVersion(RootTargetId_);
-      log_->doCheckPoint(RootTargetId_, rootVersion);
+      log_->doCheckPoint(RootTargetId_, rootVersion, idAndVers);
     }
   }
 
