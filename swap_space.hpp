@@ -333,8 +333,12 @@ public:
 	if (obj->target)
 	  delete obj->target;
 	ss->current_in_memory_objects--;
-	if (obj->version > 0)
+	// do not deallocate node file for recovery.
+  /*
+  if (obj->version > 0) {
 	  ss->backstore->deallocate(obj->id, obj->version);
+  }
+  */
 	delete obj;
       }
       target = 0;

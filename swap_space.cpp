@@ -115,8 +115,11 @@ void swap_space::write_back(swap_space::object *obj)
     backstore->put(out);
 
     //version 0 is the flag that the object exists only in memory.
-    if (obj->version > 0)
+    /*
+    if (obj->version > 0) {
       backstore->deallocate(obj->id, obj->version);
+    }
+    */
     obj->version = new_version_id;
     obj->target_is_dirty = false;
   }
