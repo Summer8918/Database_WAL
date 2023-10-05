@@ -2,7 +2,6 @@
 
 
 #include "LogRecord.hpp"
-#include "checkpoint.hpp"
 #include "backing_store.hpp"
 #include "swap_space.hpp"
 
