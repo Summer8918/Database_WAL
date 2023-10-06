@@ -696,7 +696,11 @@ public:
           log_->getRedoLog(i, lr);
           lr.debugDump();
           if (lr.getLogRecType() == LogRecordType::INSERT_LOG_RECORD) {
-            //insert(lr.getKey(), lr.afterValue_());
+            insert((Key)lr.getKey(), (Value)lr.getAfterVal());
+          } else if (lr.getLogRecType() == LogRecordType::UPDATE_LOG_RECORD) {
+            update((Key)lr.getKey(), (Value)lr.getAfterVal());
+          } else if (lr.getLogRecType() == LogRecordType::DELETE_LOG_RECORD) {
+            erase((Key)lr.getKey());
           }
         }
       } else {

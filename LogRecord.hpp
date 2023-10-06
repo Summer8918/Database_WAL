@@ -164,7 +164,7 @@ public:
         assert(len >= LOG_RECORD_HEAD_LEN);
         //debug(std::cout << "LOG_RECORD_HEAD_LEN: " << LOG_RECORD_HEAD_LEN << std::endl);
         memcpy(&head_, buf, LOG_RECORD_HEAD_LEN);
-        //debug(std::cout << "head_.length: " << head_.length << std::endl);
+        debug(std::cout << "head_.length: " << head_.length << std::endl);
         assert(len >= head_.length);
         buf += LOG_RECORD_HEAD_LEN;
         memcpy(&key_, buf, head_.keyLen);
