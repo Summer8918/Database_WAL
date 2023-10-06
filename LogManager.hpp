@@ -80,8 +80,11 @@ public:
 
         LogRecord checkpointLogRec(txtId, curCheckpointLsn, NULL_LSN,
                 tp, rootId, rootVersion);
-        saveAllNodesInfo(idAndVers);
+        int logLen = 0;
+        log_->get(logLen);
         appendLogRec(checkpointLogRec);
+        flushLogBuf();
+        log_->truncateLogFile(logLen);
         debug(std::cout << "root id: " << rootId << " version:" << rootVersion);
         flushTimes_ = 0;
         debug(std::cout << "start to parse log" << std::endl);
