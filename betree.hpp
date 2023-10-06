@@ -175,6 +175,8 @@ bool operator==(const Message<Value> &a, const Message<Value> &b) {
 // Note: we will flush MIN_FLUSH_SIZE/2 items to a clean in-memory child.
 #define DEFAULT_MIN_FLUSH_SIZE (DEFAULT_MAX_NODE_SIZE / 16ULL)
 
+#define CHECKPOINT_GRANULARITY 8
+#define PERSISTENCE_GRANULARITY 16
 
 template<class Key, class Value> class betree {
 private:
@@ -662,8 +664,8 @@ public:
 	 uint64_t maxnodesize = DEFAULT_MAX_NODE_SIZE,
 	 uint64_t minnodesize = DEFAULT_MAX_NODE_SIZE / 4,
 	 uint64_t minflushsize = DEFAULT_MIN_FLUSH_SIZE,
-   uint64_t persistence_granularity = 16,
-   uint64_t checkpoint_granularity = 8) :
+   uint64_t persistence_granularity = PERSISTENCE_GRANULARITY,
+   uint64_t checkpoint_granularity = CHECKPOINT_GRANULARITY) :
     ss(sspace),
     min_flush_size(minflushsize),
     max_node_size(maxnodesize),
