@@ -13,7 +13,7 @@ class LogManager {
 public:
     LogManager(swap_space *ss, uint64_t persistence_granularity = PERSISTENCE_GRANULARITY, 
             uint64_t checkpoint_granularity = CHECKPOINT_GRANULARITY, 
-            std::string logDir = "log") 
+            std::string logDir = "tmpdir")
             : checkpointGranularity_(checkpoint_granularity),
             persistenceGranularity_(persistence_granularity), 
             ss_(ss) {
@@ -21,6 +21,7 @@ public:
         logBufPtr_ = logBuf_;
         //checkpoint_ = new checkPoint();
         log_ = new LogFileBackingStore(logDir + "/log");
+        checkpointNodesInfoFile = logDir + "/checkpointAllNodesInfo.bin";
     }
 
     ~LogManager() {
@@ -76,12 +77,42 @@ public:
         u_int64_t txtId = getNextTxtId();
 
         LogRecord checkpointLogRec(txtId, curCheckpointLsn, NULL_LSN,
-                tp, rootId, rootVersion, idAndVers);
+                tp, rootId, rootVersion);
+        saveAllNodesInfo(idAndVers);
         appendLogRec(checkpointLogRec);
         debug(std::cout << "root id: " << rootId << " version:" << rootVersion);
         flushTimes_ = 0;
         debug(std::cout << "start to parse log" << std::endl);
         //parseLog();
+    }
+
+    void saveAllNodesInfo(std::vector<std::pair<u_int64_t, u_int64_t>> &idAndVers) {
+        // Open a file for writing
+        std::ofstream outputFile(checkpointNodesInfoFile);
+
+        // Check if the file is opened successfully
+        assert(outputFile.is_open());
+
+        for (const auto& pair : idAndVers) {
+            outputFile << pair.first << ' ' << pair.second << '\n';
+        }
+        // Close the file
+        outputFile.close();
+        // flush file to disk.
+        outputFile.flush();
+    }
+
+    void getALlNodesInfo(std::unordered_map<uint64_t, uint64_t> &objsMap) {
+        std::ifstream inputFile(checkpointNodesInfoFile);
+        assert(inputFile.is_open());
+        // Create a vector to store the parsed data
+        std::vector<std::pair<uint64_t, uint64_t>> idAndVersParsed;
+        // Read data from the file and parse it
+        uint64_t id, vers;
+        while (inputFile >> id >> vers) {
+            objsMap[id] = vers;
+        }
+        inputFile.close();
     }
 
     u_int64_t getNextTxtId() {
@@ -188,4 +219,5 @@ private:
   int flushTimes_ = 0;
   long long lastCheckpointLsn_ = 0;
   std::vector<LogRecord> redoLog_;
+  std::string checkpointNodesInfoFile;
 };

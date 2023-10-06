@@ -680,7 +680,7 @@ public:
         // All nodes of tree except the root node's target id and version is stored
         // in objsMap at the latest checkpoint.
         std::unordered_map<uint64_t, uint64_t> objsMap;
-        lr.generateIdAndVersMap(objsMap);
+        log_->getALlNodesInfo(objsMap);
         for (auto it = objsMap.begin(); it != objsMap.end(); it++) {
           debug(std::cout << "target id:" << it->first <<
             "version:" << it->second << std::endl);

@@ -2,8 +2,8 @@
 
 # STUDENT PARAMETERS
 # change where your logging file is so it can be deleted
-LOGGING_FILE=loggingFile.bin
-CHECKPOINT_POSITION_FILE=loggingFileStatus.txt
+LOGGING_FILE=tmpdir/log
+CHECKPOINT_POSITION_FILE=checkpointAllNodesInfo.bin
 
 ## GLOBAL PARAMETERS
 TREE_DIRECTORY=tmpdir
@@ -15,7 +15,7 @@ INPUT_VERIFICATION_TEST=VERIFICATION_input.txt
 OUTPUT_VERIFICATION_TEST=VERIFICATION_output.txt
 
 #how long to wait before pkill
-WAIT_KILL_TIME=5
+WAIT_KILL_TIME=1
 
 mkdir -p $TREE_DIRECTORY
 # delete everything inside
