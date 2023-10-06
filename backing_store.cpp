@@ -104,7 +104,7 @@ void LogFileBackingStore::appendData(const char* data, int len) {
   file.flush();
 }
 
-std::ifstream*  LogFileBackingStore::get(int &len) {
+std::ifstream* LogFileBackingStore::get(int &len) {
     std::ifstream* filePtr = new std::ifstream(logFile_, std::ios::binary);
     assert(filePtr->is_open()); 
 

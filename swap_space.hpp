@@ -229,9 +229,11 @@ public:
 
     Referent * operator->(void) {
       assert(ss->objects.count(target) > 0);
+      /*
       debug(std::cout << "Accessing " << target
 	      << " id " << ss->objects[target]->id << " version "
         << ss->objects[target]->version << " (" << ss->objects[target]->target << ")" << std::endl);
+      */
       access(target, true);
       return (Referent *)ss->objects[target]->target;
     }
@@ -286,10 +288,10 @@ public:
         /*
 	      debug(std::cout << "Pinning " << target
 	        << " id " << ss->objects[target]->id << " version "
-          << ss->objects[target]->version << " ("
+          << ss->objects[target]->version << " (" 
           << ss->objects[target]->target << ")" << std::endl);
-	      ss->objects[target]->pincount++;
         */
+	      ss->objects[target]->pincount++;
       }
     }
     
