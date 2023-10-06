@@ -741,9 +741,10 @@ public:
     }
     if (needToDoCheckpoint) {
       std::vector<std::pair<u_int64_t, u_int64_t>> idAndVers;
-      ss->getIdAndVerOfAllNodes(idAndVers);
       u_int64_t rootVersion = ss->getTargetVersion(RootTargetId_);
       log_->doCheckPoint(RootTargetId_, rootVersion, idAndVers);
+      ss->getIdAndVerOfAllNodes(idAndVers);
+      log_->saveAllNodesInfo(idAndVers);
     }
   }
 

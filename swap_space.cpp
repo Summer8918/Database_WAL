@@ -193,7 +193,7 @@ void swap_space::setObjectsForRecovery(std::unordered_map<uint64_t,\
   for (auto it = objsMap.begin(); it != objsMap.end(); it++) {
     object *obj = new object(this, NULL);
     obj->id = it->first;
-    obj->target_is_dirty = false;
+    obj->target_is_dirty = true;
     obj->version = it->second;
     objects[it->first] = obj;
     if (it->first > maxId) {

@@ -256,8 +256,10 @@ public:
 
     //called when pointer no longer accessed - remove pincount and maybe evict from cache.
     void unpin(void) {
+      /*
       debug(std::cout << "Unpinning " << target
 	    << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << " (" << ss->objects[target]->target << ")" << std::endl);
+      */
       if (target > 0) {
 	assert(ss->objects.count(target) > 0);
 	ss->objects[target]->pincount--;
@@ -274,11 +276,13 @@ public:
       target = newtarget;
       if (target > 0) {
 	      assert(ss->objects.count(target) > 0);
+        /*
 	      debug(std::cout << "Pinning " << target
 	        << " id " << ss->objects[target]->id << " version "
           << ss->objects[target]->version << " ("
           << ss->objects[target]->target << ")" << std::endl);
 	      ss->objects[target]->pincount++;
+        */
       }
     }
     
