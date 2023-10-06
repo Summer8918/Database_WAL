@@ -204,6 +204,8 @@ public:
 
   std::string getRootDir(void);
 
+  void setObjectsForRecovery(std::unordered_map<uint64_t, uint64_t> &objsMap);
+
   // This pins an object in memory for the duration of a member
   // access.  It's sort of an instance of the "resource aquisition is
   // initialization" paradigm.
@@ -461,7 +463,7 @@ private:
   public:
     
     object(swap_space *sspace, serializable * tgt);
-    
+
     serializable * target;
     uint64_t id;
     uint64_t version;

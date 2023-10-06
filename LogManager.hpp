@@ -4,10 +4,10 @@
 #include "backing_store.hpp"
 #include "swap_space.hpp"
 
-#define LOG_BUFFER_SIZE  4096
+#define LOG_BUFFER_SIZE 8192
 #define CHECKPOINT_GRANULARITY 8
 #define PERSISTENCE_GRANULARITY 16
-#define MAX_LOG_RECORD_SIZE 1024
+#define MAX_LOG_RECORD_SIZE 2048
 
 class LogManager {
 public:

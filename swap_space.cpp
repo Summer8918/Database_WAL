@@ -186,3 +186,19 @@ void swap_space::getIdAndVerOfAllNodes(std::vector<std::pair<u_int64_t, \
     }
   }
 }
+
+void swap_space::setObjectsForRecovery(std::unordered_map<uint64_t,\
+      uint64_t> &objsMap){
+  uint64_t maxId = 0;
+  for (auto it = objsMap.begin(); it != objsMap.end(); it++) {
+    object *obj = new object(this, NULL);
+    obj->id = it->first;
+    obj->target_is_dirty = false;
+    obj->version = it->second;
+    objects[it->first] = obj;
+    if (it->first > maxId) {
+      maxId = it->first;
+    }
+  }
+  next_id = maxId + 1;
+}

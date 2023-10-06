@@ -685,10 +685,19 @@ public:
           debug(std::cout << "target id:" << it->first <<
             "version:" << it->second << std::endl);
         }
-        for (int i = 0; i < redoLogRecNum; i++) {
+
+        // recover the be tree
+        ss->setObjectsForRecovery(objsMap);
+
+        // Redo all the log except the first log record because it is the checkpoint LR
+        int len = log_->getRedoLogRecordNumber();
+        for (int i = 0; i < len; i++) {
           debug(std::cout << "i=:" << i << std::endl);
           log_->getRedoLog(i, lr);
           lr.debugDump();
+          if (lr.getLogRecType() == LogRecordType::INSERT_LOG_RECORD) {
+            //insert(lr.getKey(), lr.afterValue_());
+          }
         }
       } else {
         debug(std::cout << "no checkout point found" << std::endl);
