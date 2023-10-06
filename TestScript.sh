@@ -15,7 +15,7 @@ INPUT_VERIFICATION_TEST=VERIFICATION_input.txt
 OUTPUT_VERIFICATION_TEST=VERIFICATION_output.txt
 
 #how long to wait before pkill
-WAIT_KILL_TIME=1
+WAIT_KILL_TIME=4
 
 mkdir -p $TREE_DIRECTORY
 # delete everything inside
