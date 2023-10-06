@@ -46,12 +46,12 @@ public:
     // return true, need to do checkpoint;
     // return false, no need to do checkpoint;
     bool appendLogRec(LogRecord &logRec) {
-        if (recNum_ > persistenceGranularity_ || bufLen + logRec.getLen() >= LOG_BUFFER_SIZE) {  //to do, config variable.
+        if (recNum_ >= persistenceGranularity_ || bufLen + logRec.getLen() >= LOG_BUFFER_SIZE) {  //to do, config variable.
             if (bufLen + logRec.getLen() >= LOG_BUFFER_SIZE) {
                 debug(std::cout << "flushLogBuf triggerred by bufLen + \
                         logRec.getLen() >= LOG_BUFFER_SIZE" << std::endl);
             } else {
-                debug(std::cout << "flushLogBuf triggerred recNum_ > MAX_LOG_RECORD_NUM " << std::endl);
+                debug(std::cout << "flushLogBuf triggerred recNum_ > persistenceGranularity_ " << std::endl);
             }
             flushLogBuf();
             recNum_ = 0;
@@ -60,7 +60,7 @@ public:
         logRec.serialize(logBufPtr_, len);
         logBufPtr_ += len;
         bufLen += len;
-        if (flushTimes_ >= persistenceGranularity_) {
+        if (flushTimes_ >= checkpointGranularity_) {
             debug(std::cout << "Need to do check pointing" << std::endl);
             return true;
         }
