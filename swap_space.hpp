@@ -221,14 +221,15 @@ public:
     Referent * operator->(void) {
       assert(ss->objects.count(target) > 0);
       debug(std::cout << "Accessing " << target
-	    << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << " (" << ss->objects[target]->target << ")" << std::endl);
+	      << " id " << ss->objects[target]->id << " version "
+        << ss->objects[target]->version << " (" << ss->objects[target]->target << ")" << std::endl);
       access(target, true);
       return (Referent *)ss->objects[target]->target;
     }
 
     pin(const pointer<Referent> *p)
       : ss(NULL),
-	target(0)
+	      target(0)
     {
       dopin(p->ss, p->target);
     }
@@ -270,10 +271,12 @@ public:
       ss = newss;
       target = newtarget;
       if (target > 0) {
-	assert(ss->objects.count(target) > 0);
-	debug(std::cout << "Pinning " << target
-	      << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << " (" << ss->objects[target]->target << ")" << std::endl);
-	ss->objects[target]->pincount++;
+	      assert(ss->objects.count(target) > 0);
+	      debug(std::cout << "Pinning " << target
+	        << " id " << ss->objects[target]->id << " version "
+          << ss->objects[target]->version << " ("
+          << ss->objects[target]->target << ")" << std::endl);
+	      ss->objects[target]->pincount++;
       }
     }
     
@@ -309,8 +312,8 @@ public:
       ss = other.ss;
       target = other.target;
       if (target > 0) {
-	assert(ss->objects.count(target) > 0);
-	ss->objects[target]->refcount++;
+	      assert(ss->objects.count(target) > 0);
+	      ss->objects[target]->refcount++;
       }
     }
 
@@ -319,48 +322,50 @@ public:
     }
 
     void depoint(void) {
-      if (target == 0)
-	return;
+      if (target == 0) {
+	      return;
+      }
       assert(ss->objects.count(target) > 0);
 
       object *obj = ss->objects[target];
       assert(obj->refcount > 0);
       if ((--obj->refcount) == 0) {
-	debug(std::cout << "Erasing " << target << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << std::endl);
-	// Load it into memory so we can recursively free stuff
-	if (obj->target == NULL) {
-	  assert(obj->version > 0);
-	  if (!obj->is_leaf) {
-	    ss->load<Referent>(target);
-	  } else {
-	    debug(std::cout << "Skipping load of leaf " << target << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << std::endl);
-	  }
-	}
-	ss->objects.erase(target);
-	ss->lru_pqueue.erase(obj);
-	if (obj->target)
-	  delete obj->target;
-	ss->current_in_memory_objects--;
-	// do not deallocate node file for recovery.
-  /*
-  if (obj->version > 0) {
-	  ss->backstore->deallocate(obj->id, obj->version);
-  }
-  */
-	delete obj;
+	      debug(std::cout << "Erasing " << target << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << std::endl);
+	      // Load it into memory so we can recursively free stuff
+	      if (obj->target == NULL) {
+	        assert(obj->version > 0);
+	        if (!obj->is_leaf) {
+	          ss->load<Referent>(target);
+	        } else {
+	          debug(std::cout << "Skipping load of leaf " << target << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << std::endl);
+	        }
+	      }
+	      ss->objects.erase(target);
+	      ss->lru_pqueue.erase(obj);
+	      if (obj->target) {
+	        delete obj->target;
+        }
+	      ss->current_in_memory_objects--;
+	      // do not deallocate node file for recovery.
+        /*
+        if (obj->version > 0) {
+	        ss->backstore->deallocate(obj->id, obj->version);
+        }
+        */
+	      delete obj;
       }
       target = 0;
     }
 
     pointer & operator=(const pointer &other) {
       if (&other != this) {
-	depoint();
-	ss = other.ss;
-	target = other.target;
-	if (target > 0) {
-	  assert(ss->objects.count(target) > 0);
-	  ss->objects[target]->refcount++;
-	}
+	      depoint();
+	      ss = other.ss;
+	      target = other.target;
+	      if (target > 0) {
+	        assert(ss->objects.count(target) > 0);
+	        ss->objects[target]->refcount++;
+	      }
       }
       return *this;
     }
@@ -444,7 +449,6 @@ public:
       ss->current_in_memory_objects++;
       ss->maybe_evict_something();
     }
-
   };
   
 private:
@@ -478,7 +482,8 @@ private:
     assert(objects.count(tgt) > 0);
     if (objects[tgt]->target == NULL) {
       object *obj = objects[tgt];
-      debug(std::cout << "Loading " << obj->id << " version " << obj->version << std::endl);
+      debug(std::cout << "Loading " << obj->id << " version "
+        << obj->version << std::endl);
       std::iostream *in = backstore->get(obj->id, obj->version);
       Referent *r = new Referent();
       serialization_context ctxt(*this);
