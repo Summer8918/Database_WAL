@@ -188,6 +188,13 @@ public:
     return pointer<Referent>(this, tgt, targetId);
   }
 
+  template<class Referent>
+  pointer<Referent> recoverNode(Referent * tgt, u_int64_t targetId) {
+    bool flag = true;
+    //debug(std::cout << "In function recoverNode, targetId:" << targetId << std::endl);
+    return pointer<Referent>(this, tgt, targetId, flag);
+  }
+
   uint64_t getTargetVersion(uint64_t targetId) {
     debug(std::cout << "targetId:" << targetId << std::endl);
     if (objects.find(targetId) == objects.end()) {
@@ -370,7 +377,11 @@ public:
 	      target = other.target;
 	      if (target > 0) {
 	        assert(ss->objects.count(target) > 0);
-	        ss->objects[target]->refcount++;
+          if (ss->objects[target] != NULL) {
+	          ss->objects[target]->refcount++;
+          } else {
+            debug(std::cout << "ss->objects[target] == NULL" << std::endl);
+          }
 	      }
       }
       return *this;
@@ -454,6 +465,17 @@ public:
       ss->lru_pqueue.insert(o);
       ss->current_in_memory_objects++;
       ss->maybe_evict_something();
+    }
+
+    // pointer constructor for recovery
+    pointer(swap_space *sspace, Referent *tgt, u_int64_t targetId, bool isRecover)
+    {
+      ss = sspace;
+      target = targetId;
+      object *o = ss->objects[targetId];
+      debug(std::cout << "in pointer recover construct, targertId = " << 
+          targetId << std::endl);
+      delete tgt;
     }
   };
   
