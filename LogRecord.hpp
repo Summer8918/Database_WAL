@@ -1,6 +1,4 @@
 
-#define DEBUG
-
 #define INVALID_LSN 0xffffffffffffffff
 #define INVALID_TRANSACTION_ID 0xffffffffffffffff
 #define INVALID_PAGE_ID 0xffffffffffffffff

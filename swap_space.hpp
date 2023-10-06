@@ -79,7 +79,6 @@
 #include <sstream>
 #include <cassert>
 #include "backing_store.hpp"
-#define DEBUG
 #include "debug.hpp"
 
 class swap_space;
@@ -352,7 +351,7 @@ public:
 	        if (!obj->is_leaf) {
 	          ss->load<Referent>(target);
 	        } else {
-	          debug(std::cout << "Skipping load of leaf " << target << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << std::endl);
+	          //debug(std::cout << "Skipping load of leaf " << target << " id " << ss->objects[target]->id << " version " << ss->objects[target]->version << std::endl);
 	        }
 	      }
 	      ss->objects.erase(target);
