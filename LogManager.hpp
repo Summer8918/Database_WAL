@@ -5,14 +5,13 @@
 #include "swap_space.hpp"
 
 #define LOG_BUFFER_SIZE 8192
-#define CHECKPOINT_GRANULARITY 8
-#define PERSISTENCE_GRANULARITY 16
+
 #define MAX_LOG_RECORD_SIZE 4096
 
 class LogManager {
 public:
-    LogManager(swap_space *ss, uint64_t persistence_granularity = PERSISTENCE_GRANULARITY, 
-            uint64_t checkpoint_granularity = CHECKPOINT_GRANULARITY, 
+    LogManager(swap_space *ss, uint64_t persistence_granularity = 16,
+            uint64_t checkpoint_granularity = 8,
             std::string logDir = "tmpdir")
             : checkpointGranularity_(checkpoint_granularity),
             persistenceGranularity_(persistence_granularity), 
